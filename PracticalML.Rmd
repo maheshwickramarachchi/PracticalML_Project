@@ -1,0 +1,117 @@
+---
+title: "Practical Machine Learning - Project"
+author: "Mahesh Wickramarachchi"
+date: "October 2, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+#Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+#Data
+
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. 
+
+##Importing data
+```{r import}
+
+path<-"C:\\Users\\MaheshWick\\OneDrive for Business\\Data_Science\\Course_08"
+
+training <- read.csv(paste(path,"pml-training.csv",sep="\\"), na.strings = c("NA", ""))
+testing <- read.csv(paste(path,"pml-testing.csv",sep="\\"), na.strings = c("NA", ""))
+```
+##Data Cleaning
+since the data set contains columns with missing values those columns have to be removed removed.
+
+
+```{r clean1}
+training <- training[, colSums(is.na(training)) == 0]
+testing <- testing[, colSums(is.na(testing)) == 0]
+```
+further more first 7 columns are removed.
+
+```{r clean2}
+trainData <- training[, -c(1:7)]
+testData <- testing[, -c(1:7)]
+```
+##Creating test set and the validation set
+```{r spliting}
+set.seed(1235) 
+library(caret)
+inTrain <- createDataPartition(trainData$classe, p = 0.7, list = FALSE)
+train <- trainData[inTrain, ]
+validate <- trainData[-inTrain, ]
+
+```
+##Cross Validation
+10 fold cross validation is used and  k=5 or k=10 can be used. But in classificaion fucntions  value of k is less important.
+```{r cv}
+kVal<- trainControl(method = "cv", number = 5)
+```
+
+##Training with Classification Tree
+```{r trainTree}
+library(rpart)
+fitTree <- train(classe ~ ., 
+                 data = train, 
+                 method = "rpart", 
+                 trControl = kVal)
+
+print(fitTree, digits = 2)
+```
+
+##Ploting the Classification Tree
+```{r plotTree}
+library(rattle)
+fancyRpartPlot(fitTree$finalModel)
+```
+##Classification tree Prediction and Accuracy With validation set
+```{r predTree}
+predictTree<- predict(fitTree, validate)
+accuracyTree <- confusionMatrix(validate$classe, predictTree)$overall[1]
+print(accuracyTree,digits = 4)
+```
+
+##Training with Random Forest
+```{r TrainRf}
+library(randomForest)
+fitRf <- train(classe ~ ., 
+               data = train, 
+               method = "rf", 
+               trControl = kVal)
+
+print(fitRf, digits = 2)
+```
+##Random Forest Prediction and Accuracy With validation set
+```{r predRf }
+
+predictRf<- predict(fitRf, validate)
+accuracyRf <- confusionMatrix(validate$classe, predictRf)$overall[1]
+print(accuracyRf,digits = 4)
+```
+##Predict With validation set
+Since Random Forest gives the prediction with a considerably higher accuracy Random Forest method is used for the final prediction.
+```{r predTest}
+predictRfTest<- predict(fitRf,testData)
+predictRfTest
+```
+
+
+
+
+
+
+
